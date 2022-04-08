@@ -67,5 +67,13 @@ elif select_page =='Order reviews':
     score_count = df['review_score'].value_counts()
     fig2 = px.bar(score_count, width=800, height=500)
     st.plotly_chart(fig2)
-    
-    
+#mostra os preços dos produtos e seus respectivos fretes
+elif select_page =='Order item':
+    df = load_page(order_item)
+    fig = px.scatter(df, x =df['price'], y = df['freight_value'],
+                 width=800, height=400)
+    fig.update_layout(
+    margin=dict(l=20, r=20, t=20, b=20),
+    paper_bgcolor="LightSteelBlue",
+    )
+    st.plotly_chart(fig)
