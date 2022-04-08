@@ -28,7 +28,7 @@ st.title("Cosmus - Data visualization App")
 #cria barra lateral
 st.sidebar.title("Menu")
 #cria uma selectbox para navegar entre as páginas de análises
-select_page = st.sidebar.selectbox("Select dataset",['Order Payments','Sellers list','Products list','Order reviews'])
+select_page = st.sidebar.selectbox("Select dataset",['Order Payments','Sellers list','Products list','Order reviews', 'Order item'])
 #função que carrega o template de cada página de análise, recebe a lista de datasets e o indice correspondente
 def load_page(data):
     st.subheader(select_page) #subtítulo
