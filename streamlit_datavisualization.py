@@ -5,8 +5,15 @@ import matplotlib.pyplot as plt
 import streamlit as st
 from st_aggrid import AgGrid 
 import plotly.express as px
+import datetime as dt
 #Bibliotecas de classes de machine learning 
-
+from sklearn.cluster import KMeans #Importa o Kmenas 
+from sklearn.model_selection import train_test_split  #Divide as instancias entre treino e teste
+from sklearn.preprocessing import OneHotEncoder, LabelEncoder # Transforma variaveis categoricas em numericas
+from sklearn.datasets import make_classification  #ANYMORE
+from sklearn.inspection import permutation_importance # Importa o algoritmo de permutação de importancia 
+from sklearn.preprocessing import StandardScaler #Importa o algitmo "padronizador"
+from sklearn.utils import resample #Reamostragem
 #Variaveis correspondetes aos devidos endereços dos dataset selecionados======================================================================
 #O conjunto de dados foi cópiado para o GitHub de um dos integrantes da equipe Cosmus, responsavel pelo desenvolvimento do artigo
 products_ds = pd.read_csv('https://raw.githubusercontent.com/FelipeSantanaC/PISI3-2021.1/main/data/olist_products_dataset.csv') 
@@ -69,11 +76,11 @@ p3_ds = p3_ds.drop(['order_id','review_id','customer_id','review_comment_title',
 
 
 # STREAMLIT VISUALIZATION=====================================================================================================================
-st.title("Cosmus - Data visualization App")
+st.title("Cosmus - Visualização de Dados")
 #cria barra lateral
 st.sidebar.title("Menu")
 #cria uma selectbox para navegar entre as páginas de análises
-select_page = st.sidebar.selectbox("Select dataset",['Order Payments','Sellers list','Products list','Order reviews', 'Order item'])
+select_page = st.sidebar.selectbox("Selecionar sessão",['Análise exploratória de dados','Mineração de dados',])
 #função que carrega o template de cada página de análise, recebe a lista de datasets e o indice correspondente
 def load_page(data):
     st.subheader(select_page) #subtítulo
