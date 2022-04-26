@@ -1,5 +1,7 @@
-#Importação das bibliotecas===================================================================================================================
+#IMPORTAÇÃO DAS BIBLIOTECAS===================================================================================================================
 import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
 import streamlit as st
 from st_aggrid import AgGrid 
 import plotly.express as px
@@ -14,16 +16,34 @@ customer_ds = pd.read_csv('https://raw.githubusercontent.com/FelipeSantanaC/PISI
 payment_ds = pd.read_csv('https://raw.githubusercontent.com/FelipeSantanaC/PISI3-2021.1/main/data/olist_order_payments_dataset.csv')
 review_ds = pd.read_csv('https://raw.githubusercontent.com/FelipeSantanaC/PISI3-2021.1/main/data/olist_order_reviews_dataset.csv')
 items_ds = pd.read_csv('https://raw.githubusercontent.com/FelipeSantanaC/PISI3-2021.1/main/data/olist_order_items_dataset.csv')
-#pré-processamento de dados===================================================================================================================
-
-#Algoritmo para obter as contagens de vezes que os clientes compraram  ----------------------------------------------------------------
+#PRÉ-PROCESSAMENTO DE DADOS===================================================================================================================
+#Algoritmo para obter as contagens de vezes que cada produtos foi vendido --------------------------------------------------------------------
+sold_count = items_ds['product_id'].value_counts() #Cria uma variavel em arquivo "Serie" que contem o número de vendas dos produtos
+sold_count = sold_count.to_frame() #Converte o arquivo Serie para Dataframe
+sold_count.reset_index(inplace=True) #Cria um index para esse pequeno Dataframe
+sold_count.rename(columns={'index':'product_id','product_id':'sold_count'}, inplace=True) #Renomeia as colunas
+#Juntando e sincrozizando os novos atributos ao dataset "product_ds"
+products_ds = pd.merge(products_ds, sold_count) #Junta e sincroniza os atributos do dataset "sold_count" ao "products_ds"
+#Algoritmo para obter as contagens de vezes que os clientes compraram  -----------------------------------------------------------------------
 frequency = customer_ds['customer_unique_id'].value_counts() #Cria uma variavel em arquivo "Serie" que contem o número das vezes que os clientes compraram
 frequency = frequency.to_frame()
 frequency.reset_index(inplace=True)
 frequency.rename(columns={'index':'customer_unique_id','customer_unique_id':'frequency'}, inplace=True)
 #Juntando e sincrozizando os novos atributos ao dataset "customer_ds"
 customer_ds = pd.merge(customer_ds, frequency)
-
+#PERGUNTA 1 --------------------------------------------------------------------------------------------------------------------------------
+#Copiando o dataset "products_ds" para usar na pergunta 1.
+prod_p1 = products_ds.copy()
+#Removendo os atributos que não são relevantes para a analise
+prod_p1.drop(['product_weight_g','product_length_cm','product_height_cm','product_width_cm'], axis=1, inplace=True)
+#Verificando os valores NaN do dataset. 
+check_nan = prod_p1[prod_p1.isna().any(axis=1)] #Seleciona apenas as colunas com valores NaN
+print(prod_p1.isnull().sum()) #Verifica quantas linhas possui valores NaN
+#Removendo as linhas NaN
+prod_p1 = prod_p1.dropna() #Remove as linhas que possuem valores NaN
+print(prod_p1.isnull().sum()) #Verifica quantas linhas possui valores NaN
+#Organizando o dataset de forma decrescente
+prod_p1 = prod_p1.sort_values(by=['sold_count'], ascending=False, ignore_index=True) # Organiza a lista de forma decrescente, usando a coluna 'sold' em consideração
 #PERGUNTA 3 --------------------------------------------------------------------------------------------------------------------------------
 #Copiando o dataset "orders_ds" e apagando instancias NaN
 p3_ds = orders_ds.copy() #Copia o dataset "orders_ds"
