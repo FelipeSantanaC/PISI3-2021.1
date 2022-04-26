@@ -65,6 +65,14 @@ current_timestamp = dt.datetime.now()
 #Criando coluna que diz o quão recente foi a compra daquele customer
 p2_ds['recent_pur'] = current_timestamp - p2_ds['order_purchase_timestamp'] #Calcula a diferença entre o timestam atual e a data da compra
 p2_ds['recent_pur'] = p2_ds['recent_pur']/np.timedelta64(1,'h') #Transforma o timestamp em somente horas
+#Exclui as colunas 'customer_id', 'order_id' e 'order_purchase_timestamp'
+p2_ds.drop(['customer_id', 'customer_unique_id', 'order_id', 'order_purchase_timestamp'], axis=1, inplace=True)
+#Padronizando a média de todos os dados para 0 
+scaler = StandardScaler() #Instancia a função responsavel
+p2_ds = scaler.fit_transform(p2_ds) #Usa a função e padroniza
+#Transformação do "p2_ds" para o grafico
+p2_ds = pd.DataFrame(p2_ds) #Transporma o "p2_ds" novamente em Dataframe
+p2_ds = pd.DataFrame.rename(p2_ds, columns={0:'frequency', 1:'payment_value',	2:'recency'}) #retorna o nome das colunas
 #PERGUNTA 3 --------------------------------------------------------------------------------------------------------------------------------
 #Copiando o dataset "orders_ds" e apagando instancias NaN
 p3_ds = orders_ds.copy() #Copia o dataset "orders_ds"
@@ -87,7 +95,11 @@ p3_ds = pd.merge(p3_ds, items_p3) #Unindo o dataset "items_ds" ao "p3_ds"
 #p3_ds = p3_ds.drop_duplicates(subset='order_id') #Remove as instancias duplicadas vindas do dataset ITEMS.
 p3_ds = p3_ds.drop(['order_id','review_id','customer_id','review_comment_title','review_comment_message'],axis=1) 
 #Remove as colunas irrelevantes
-
+#MINERAÇÃO DE DADOS --------------------------------------------------------------------------------------------------------------------------
+def grafico_elbow():
+  elbow_df = pd.DataFrame({'Clusters': K, 'within-clusters sum-of-squares': distortions})
+  fig = (px.line(elbow_df, x='Clusters', y='within-clusters sum-of-squares', template='seaborn')).update_traces(mode='lines+markers')
+  st.plotly_chart(fig)
 
 # STREAMLIT VISUALIZATION=====================================================================================================================
 st.title("Cosmus - Visualização de Dados")
