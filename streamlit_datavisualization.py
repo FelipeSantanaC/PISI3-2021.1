@@ -1,29 +1,54 @@
-#<<<<<<< HEAD
+#Importação das bibliotecas===================================================================================================================
 import pandas as pd
 import streamlit as st
 from st_aggrid import AgGrid 
 import plotly.express as px
-#o dataset possui varios arquivos com finalidades divergentes, aqui cada variavel corresponde ao entereço do dataset no repositorio do grupo
-customer = "https://github.com/FelipeSantanaC/PISI3-2021.1/blob/main/data/olist_customers_dataset.csv?raw=true" 
-geolocation = 'https://github.com/FelipeSantanaC/PISI3-2021.1/blob/main/data/olist_geolocation_dataset.csv?raw=true'
-order_item = 'https://github.com/FelipeSantanaC/PISI3-2021.1/blob/main/data/olist_order_items_dataset.csv?raw=true'
-order_payment = 'https://github.com/FelipeSantanaC/PISI3-2021.1/blob/main/data/olist_order_payments_dataset.csv?raw=true'
-order_review = 'https://github.com/FelipeSantanaC/PISI3-2021.1/blob/main/data/olist_order_reviews_dataset.csv?raw=true'
-order = 'https://github.com/FelipeSantanaC/PISI3-2021.1/blob/main/data/olist_orders_dataset.csv?raw=true'
-product = 'https://github.com/FelipeSantanaC/PISI3-2021.1/blob/main/data/olist_products_dataset.csv?raw=true'
-sellers = 'https://github.com/FelipeSantanaC/PISI3-2021.1/blob/main/data/olist_sellers_dataset.csv?raw=true'
-translation = 'https://github.com/FelipeSantanaC/PISI3-2021.1/blob/main/data/product_category_name_translation.csv?raw=true'
-#aqui importa o dataset e transforma em um DataFrame para as futuras analises
-#cust = pd.read_csv(customer)
-#geo = pd.read_csv(geolocation)
-#ordI = pd.read_csv(order_item)
-#ordP = pd.read_csv(order_payment)
-#ordR = pd.read_csv(order_review)
-#ord = pd.read_csv(order)
-#prod = pd.read_csv(product)
-#sell = pd.read_csv(sellers)
-#tran = pd.read_csv(translation)
-#título que será mostrado em todas as páginas
+#Bibliotecas de classes de machine learning 
+
+#Variaveis correspondetes aos devidos endereços dos dataset selecionados======================================================================
+#O conjunto de dados foi cópiado para o GitHub de um dos integrantes da equipe Cosmus, responsavel pelo desenvolvimento do artigo
+products_ds = pd.read_csv('https://raw.githubusercontent.com/FelipeSantanaC/PISI3-2021.1/main/data/olist_products_dataset.csv') 
+orders_ds = pd.read_csv('https://raw.githubusercontent.com/FelipeSantanaC/PISI3-2021.1/main/data/olist_orders_dataset.csv')
+category_ds = pd.read_csv('https://raw.githubusercontent.com/FelipeSantanaC/PISI3-2021.1/main/data/product_category_name_translation.csv')
+customer_ds = pd.read_csv('https://raw.githubusercontent.com/FelipeSantanaC/PISI3-2021.1/main/data/olist_customers_dataset.csv')
+payment_ds = pd.read_csv('https://raw.githubusercontent.com/FelipeSantanaC/PISI3-2021.1/main/data/olist_order_payments_dataset.csv')
+review_ds = pd.read_csv('https://raw.githubusercontent.com/FelipeSantanaC/PISI3-2021.1/main/data/olist_order_reviews_dataset.csv')
+items_ds = pd.read_csv('https://raw.githubusercontent.com/FelipeSantanaC/PISI3-2021.1/main/data/olist_order_items_dataset.csv')
+#pré-processamento de dados===================================================================================================================
+
+#Algoritmo para obter as contagens de vezes que os clientes compraram  ----------------------------------------------------------------
+frequency = customer_ds['customer_unique_id'].value_counts() #Cria uma variavel em arquivo "Serie" que contem o número das vezes que os clientes compraram
+frequency = frequency.to_frame()
+frequency.reset_index(inplace=True)
+frequency.rename(columns={'index':'customer_unique_id','customer_unique_id':'frequency'}, inplace=True)
+#Juntando e sincrozizando os novos atributos ao dataset "customer_ds"
+customer_ds = pd.merge(customer_ds, frequency)
+
+#PERGUNTA 3 --------------------------------------------------------------------------------------------------------------------------------
+#Copiando o dataset "orders_ds" e apagando instancias NaN
+p3_ds = orders_ds.copy() #Copia o dataset "orders_ds"
+p3_ds = p3_ds.dropna() #Remove as linhas que possuem valores NaN
+#corrige o valor de frete para o pedido + cria coluna com quantidade de itens + corrige valor total do pedido somando o valor de todos os produtos
+items_p3 = items_ds.drop(['product_id','seller_id'],axis=1)
+# cria um dicionários com as funções que serão executadas para cada coluna, combinando as linhas que pertencem ao mesmo id do pedido
+functions = {'order_item_id':'count', # transforma na quantidade de itens no pedido
+             'shipping_limit_date':'first', # permanece igual
+             'price':'sum', # soma o valor dos produtos do pedido
+             'freight_value':'sum'} # valor total do frete no pedido
+items_p3 = items_p3.groupby(['order_id'], as_index=False).aggregate(functions)
+items_p3.rename(columns = {'order_item_id':'quantity_of_items'}, inplace = True)
+items_p3['shipping_limit_date'] = pd.to_datetime(items_ds['shipping_limit_date'], format='%Y-%m-%d %H:%M:%S') #transformando em timestamp
+#Unindo os dataset
+p3_ds = pd.merge(p3_ds, payment_ds) #Unindo o dataset "payments_ds" ao "p3_ds"
+p3_ds = pd.merge(p3_ds, review_ds) #Unindo o dataset "review_ds" ao "p3_ds"
+p3_ds = pd.merge(p3_ds, items_p3) #Unindo o dataset "items_ds" ao "p3_ds"
+#Removendo instancias e atributos irrelevantes
+#p3_ds = p3_ds.drop_duplicates(subset='order_id') #Remove as instancias duplicadas vindas do dataset ITEMS.
+p3_ds = p3_ds.drop(['order_id','review_id','customer_id','review_comment_title','review_comment_message'],axis=1) 
+#Remove as colunas irrelevantes
+
+
+# STREAMLIT VISUALIZATION=====================================================================================================================
 st.title("Cosmus - Data visualization App")
 #cria barra lateral
 st.sidebar.title("Menu")
