@@ -51,6 +51,20 @@ prod_p1 = prod_p1.dropna() #Remove as linhas que possuem valores NaN
 print(prod_p1.isnull().sum()) #Verifica quantas linhas possui valores NaN
 #Organizando o dataset de forma decrescente
 prod_p1 = prod_p1.sort_values(by=['sold_count'], ascending=False, ignore_index=True) # Organiza a lista de forma decrescente, usando a coluna 'sold' em consideração
+#PERGUNTA 2 ----------------------------------------------------------------------------------------------------------------------------------
+#Selecionando as colunas com atributos de interesse
+cust_p2 = customer_ds[['customer_id','customer_unique_id','frequency']] #Seleciona os atributos do "customer_ds"
+orde_p2 = orders_ds[['order_id','order_purchase_timestamp','customer_id']] #Seleciona os atributos do "orders_ds"
+paym_p2 = payment_ds[['order_id','payment_value']] #Seleciona os atributos do "payments_ds"
+#Unindo os dataset
+p2_ds = pd.merge(cust_p2,orde_p2) #Unindo o dataset "cust_p2" ao "orde_p2"
+p2_ds = pd.merge(p2_ds,paym_p2) #Unindo o dataset "paym_p2" ao "p2_ds"
+#Criando variavel que contêm o timestamp atual
+current_timestamp = dt.datetime.now()
+#current_timestamp= current_timestamp/np.timedelta64(1,'h')
+#Criando coluna que diz o quão recente foi a compra daquele customer
+p2_ds['recent_pur'] = current_timestamp - p2_ds['order_purchase_timestamp'] #Calcula a diferença entre o timestam atual e a data da compra
+p2_ds['recent_pur'] = p2_ds['recent_pur']/np.timedelta64(1,'h') #Transforma o timestamp em somente horas
 #PERGUNTA 3 --------------------------------------------------------------------------------------------------------------------------------
 #Copiando o dataset "orders_ds" e apagando instancias NaN
 p3_ds = orders_ds.copy() #Copia o dataset "orders_ds"
