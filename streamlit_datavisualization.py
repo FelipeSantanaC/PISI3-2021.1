@@ -11,6 +11,7 @@ from sklearn.cluster import KMeans #Importa o Kmenas
 from sklearn.model_selection import train_test_split  #Divide as instancias entre treino e teste
 from sklearn.preprocessing import OneHotEncoder, LabelEncoder # Transforma variaveis categoricas em numericas
 from sklearn.datasets import make_classification  #ANYMORE
+from sklearn.neighbors import KNeighborsClassifier # Importa o algoritmo de ML classificador
 from sklearn.inspection import permutation_importance # Importa o algoritmo de permutação de importancia 
 from sklearn.preprocessing import StandardScaler #Importa o algitmo "padronizador"
 from sklearn.utils import resample #Reamostragem
@@ -38,7 +39,7 @@ frequency.reset_index(inplace=True)
 frequency.rename(columns={'index':'customer_unique_id','customer_unique_id':'frequency'}, inplace=True)
 #Juntando e sincrozizando os novos atributos ao dataset "customer_ds"
 customer_ds = pd.merge(customer_ds, frequency)
-
+#Transformando as string de data e hora em timestamp --------------------------------------------------------------------------------------
 review_ds['review_creation_date'] = pd.to_datetime(review_ds['review_creation_date'], format='%Y-%m-%d %H:%M:%S')
 review_ds['review_answer_timestamp'] = pd.to_datetime(review_ds['review_answer_timestamp'], format='%Y-%m-%d')
 orders_ds['order_purchase_timestamp'] = pd.to_datetime(orders_ds['order_purchase_timestamp'], format='%Y-%m-%d %H:%M:%S') 
@@ -47,8 +48,6 @@ orders_ds['order_delivered_carrier_date'] = pd.to_datetime(orders_ds['order_deli
 orders_ds['order_delivered_customer_date'] = pd.to_datetime(orders_ds['order_delivered_customer_date'], format='%Y-%m-%d %H:%M:%S')
 orders_ds['order_estimated_delivery_date'] = pd.to_datetime(orders_ds['order_estimated_delivery_date'], format='%Y-%m-%d %H:%M:%S')
 items_ds['shipping_limit_date'] = pd.to_datetime(items_ds['shipping_limit_date'], format='%Y-%m-%d %H:%M:%S')
-items_p3['shipping_limit_date'] = pd.to_datetime(items_ds['shipping_limit_date'], format='%Y-%m-%d %H:%M:%S')
-
 #PERGUNTA 1 --------------------------------------------------------------------------------------------------------------------------------
 #Copiando o dataset "products_ds" para usar na pergunta 1.
 prod_p1 = products_ds.copy()
@@ -103,7 +102,7 @@ p3_ds = pd.merge(p3_ds, payment_ds) #Unindo o dataset "payments_ds" ao "p3_ds"
 p3_ds = pd.merge(p3_ds, review_ds) #Unindo o dataset "review_ds" ao "p3_ds"
 p3_ds = pd.merge(p3_ds, items_p3) #Unindo o dataset "items_ds" ao "p3_ds"
 #Removendo atributos irrelevantes
-p3_ds = p3_ds.drop(['order_id','review_id','customer_id','review_comment_title','review_comment_message'],axis=1) 
+p3_ds = p3_ds.drop(['order_id','review_id','customer_id','review_comment_title','review_comment_message'],axis=1) #Remove as colunas irrelevante
 #Gerando dummy features com os tipos de pagamentos
 p3_ds = pd.get_dummies(p3_ds, columns=['payment_type']) #Gera o dummies
 #Transformando as variaveis as categorica nominal "delivered" e "canceled" do atributo "order_status" em numericos "1" e "0" 
@@ -137,6 +136,42 @@ p3_ds = p3_ds.drop(['review_creation_date',
 #seleciona o sequencial de pagamento = 1 e exclui a respectiva coluna
 p3_ds = p3_ds[p3_ds['payment_sequential']==1]
 p3_ds = p3_ds.drop(['payment_sequential'],axis=1)
+#Dividindo o dataset em treinos e testes 
+#Colunas de variaveis 
+X = p3_ds[['payment_installments',	'payment_value',	'order_status'	,'quantity_of_items',	'price',	'freight_value'	,'payment_type_boleto',	'payment_type_credit_card',	'payment_type_debit_card',	'payment_type_voucher',	'order_approval_time',	'order_picking_time',	'order_delivery_time',	'delivered_on_time',	'posted_on_deadline',	'review_response_time']]
+#Colunas com classes
+y = p3_ds['review_score'] 
+#Configurando conjuntos de teste e treinamento
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.99,stratify=y, random_state=999) #Limita o dataset a 20%
+#Concatenando os dados de treinamento novamente
+X = pd.concat([X_train, y_train], axis=1)
+#Separando as classes minoritárias das majoritárias
+score5 = X[X['review_score']==5]
+score4 = X[X['review_score']==4]
+score3 = X[X['review_score']==3]
+score2 = X[X['review_score']==2]
+score1 = X[X['review_score']==1]
+#Reamostrando as classes com menor instâncias até o valor da classe predominante
+upsampled1 = resample(score1,replace=True, #Reposição da amostra
+                      n_samples=len(score5), #Número de correspondência na classe majoritária
+                      random_state=20) #Número de resultados reproduzíveis
+upsampled2= resample(score2,replace=True, n_samples=len(score5), random_state=20)
+upsampled3 = resample(score3,replace=True, n_samples=len(score5), random_state=20)
+upsampled4 = resample(score4,replace=True, n_samples=len(score5), random_state=20)
+#Junção de todas as classes
+upsampled = pd.concat([upsampled1, upsampled2, upsampled3, upsampled4, score5])
+#Entre esse e o original o "y_train" possui uma diferença de 200 instancias
+#Separando novamente as classes e varaveis
+y_train = upsampled['review_score']
+X_train = upsampled[['payment_installments',	'payment_value',	'order_status'	,'quantity_of_items',	'price',	'freight_value'	,'payment_type_boleto',	'payment_type_credit_card',	'payment_type_debit_card',	'payment_type_voucher',	'order_approval_time',	'order_picking_time',	'order_delivery_time',	'delivered_on_time',	'posted_on_deadline',	'review_response_time']]
+X_col = X_train.columns
+scaler = StandardScaler() #Instancia a função responsavel
+X_train = scaler.fit_transform(X_train) #Transformação do "X_train" para o grafico
+X_train = pd.DataFrame(X_train,columns=X_col) #Transporma o "X_train" novamente em Dataframe e define o título das colunas
+#FUNÇÕES QUE PLOTAM OS GRAFICOS DE ANALISEs====================================================================================================
+#PERGUNTA 1 ---------------------------------------------------------------------------------------------------------------------------------
+#PERGUNTA 2 ---------------------------------------------------------------------------------------------------------------------------------
+#PERGUNTA 3 ---------------------------------------------------------------------------------------------------------------------------------
 #MINERAÇÃO DE DADOS --------------------------------------------------------------------------------------------------------------------------
 def grafico_elbow():
   elbow_df = pd.DataFrame({'Clusters': K, 'within-clusters sum-of-squares': distortions})
@@ -155,6 +190,10 @@ def load_page(data):
     df = pd.read_csv(data) #leitura do dataset
     AgGrid(df)  #cria dataframe interativo(filtros etc.)
     return df
+#ANALISE EXPLORATÓRIA-------------------------------------------------------------------------------------------------------------------
+#DATA MINING ---------------------------------------------------------------------------------------------------------------------------
+
+
 #os if statements abaixo referem-se as opções do selectbox
 if select_page == 'Order Payments':
     df = load_page(order_payment) # chama funçao de template
