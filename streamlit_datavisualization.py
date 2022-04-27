@@ -38,6 +38,17 @@ frequency.reset_index(inplace=True)
 frequency.rename(columns={'index':'customer_unique_id','customer_unique_id':'frequency'}, inplace=True)
 #Juntando e sincrozizando os novos atributos ao dataset "customer_ds"
 customer_ds = pd.merge(customer_ds, frequency)
+
+review_ds['review_creation_date'] = pd.to_datetime(review_ds['review_creation_date'], format='%Y-%m-%d %H:%M:%S')
+review_ds['review_answer_timestamp'] = pd.to_datetime(review_ds['review_answer_timestamp'], format='%Y-%m-%d')
+orders_ds['order_purchase_timestamp'] = pd.to_datetime(orders_ds['order_purchase_timestamp'], format='%Y-%m-%d %H:%M:%S') 
+orders_ds['order_approved_at'] = pd.to_datetime(orders_ds['order_approved_at'], format='%Y-%m-%d %H:%M:%S')
+orders_ds['order_delivered_carrier_date'] = pd.to_datetime(orders_ds['order_delivered_carrier_date'], format='%Y-%m-%d %H:%M:%S')
+orders_ds['order_delivered_customer_date'] = pd.to_datetime(orders_ds['order_delivered_customer_date'], format='%Y-%m-%d %H:%M:%S')
+orders_ds['order_estimated_delivery_date'] = pd.to_datetime(orders_ds['order_estimated_delivery_date'], format='%Y-%m-%d %H:%M:%S')
+items_ds['shipping_limit_date'] = pd.to_datetime(items_ds['shipping_limit_date'], format='%Y-%m-%d %H:%M:%S')
+items_p3['shipping_limit_date'] = pd.to_datetime(items_ds['shipping_limit_date'], format='%Y-%m-%d %H:%M:%S')
+
 #PERGUNTA 1 --------------------------------------------------------------------------------------------------------------------------------
 #Copiando o dataset "products_ds" para usar na pergunta 1.
 prod_p1 = products_ds.copy()
@@ -91,10 +102,41 @@ items_p3['shipping_limit_date'] = pd.to_datetime(items_ds['shipping_limit_date']
 p3_ds = pd.merge(p3_ds, payment_ds) #Unindo o dataset "payments_ds" ao "p3_ds"
 p3_ds = pd.merge(p3_ds, review_ds) #Unindo o dataset "review_ds" ao "p3_ds"
 p3_ds = pd.merge(p3_ds, items_p3) #Unindo o dataset "items_ds" ao "p3_ds"
-#Removendo instancias e atributos irrelevantes
-#p3_ds = p3_ds.drop_duplicates(subset='order_id') #Remove as instancias duplicadas vindas do dataset ITEMS.
+#Removendo atributos irrelevantes
 p3_ds = p3_ds.drop(['order_id','review_id','customer_id','review_comment_title','review_comment_message'],axis=1) 
-#Remove as colunas irrelevantes
+#Gerando dummy features com os tipos de pagamentos
+p3_ds = pd.get_dummies(p3_ds, columns=['payment_type']) #Gera o dummies
+#Transformando as variaveis as categorica nominal "delivered" e "canceled" do atributo "order_status" em numericos "1" e "0" 
+enconde_order_status = LabelEncoder() #Chama o label responsavel 
+labelstatus = enconde_order_status.fit_transform(p3_ds['order_status']) #Transforma em numericos
+p3_ds['order_status'] = labelstatus #Atribui os novos valores
+#Criando novos atributos com o intervalo entre o timestamp relatado pelo sistema e da entrega ao/pelo cliente
+#Valor = data final - data inicial
+p3_ds['order_approval_time'] = p3_ds['order_approved_at'] -  p3_ds['order_purchase_timestamp'] #Intervalo entre a compra e sua aprovação
+p3_ds['order_picking_time'] = p3_ds['order_delivered_carrier_date'] - p3_ds['order_approved_at'] #Intervalo entre a aprovação e da coleta do pedido
+p3_ds['order_delivery_time'] = p3_ds['order_delivered_customer_date'] - p3_ds['order_delivered_carrier_date'] 
+p3_ds['delivered_on_time'] = p3_ds['order_estimated_delivery_date'] - p3_ds['order_delivered_customer_date'] #Intervalo entre o tempo estimado e o real da entrega
+p3_ds['posted_on_deadline'] = p3_ds['shipping_limit_date'] - p3_ds['order_delivered_carrier_date'] 
+p3_ds['review_response_time'] = p3_ds['review_answer_timestamp'] - p3_ds['review_creation_date']
+#Transformando os valores das novas colunas em valores numericos(horas)
+p3_ds['order_approval_time'] = p3_ds['order_approval_time']/np.timedelta64(1,'h')
+p3_ds['order_picking_time'] = p3_ds['order_picking_time']/np.timedelta64(1,'h')
+p3_ds['order_delivery_time'] = p3_ds['order_delivery_time']/np.timedelta64(1,'h')
+p3_ds['delivered_on_time'] = p3_ds['delivered_on_time']/np.timedelta64(1,'h')
+p3_ds['posted_on_deadline'] = p3_ds['posted_on_deadline']/np.timedelta64(1,'h')
+p3_ds['review_response_time'] = p3_ds['review_response_time']/np.timedelta64(1,'h')
+#Remove os atributos que não serão mais úteis
+p3_ds = p3_ds.drop(['review_creation_date',
+                'review_answer_timestamp',
+                'order_purchase_timestamp',
+                'order_approved_at',
+                'order_delivered_carrier_date',
+                'order_delivered_customer_date',
+                'order_estimated_delivery_date',
+                'shipping_limit_date'], axis=1)
+#seleciona o sequencial de pagamento = 1 e exclui a respectiva coluna
+p3_ds = p3_ds[p3_ds['payment_sequential']==1]
+p3_ds = p3_ds.drop(['payment_sequential'],axis=1)
 #MINERAÇÃO DE DADOS --------------------------------------------------------------------------------------------------------------------------
 def grafico_elbow():
   elbow_df = pd.DataFrame({'Clusters': K, 'within-clusters sum-of-squares': distortions})
