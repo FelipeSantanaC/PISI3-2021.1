@@ -170,6 +170,9 @@ X_train = scaler.fit_transform(X_train) #Transformação do "X_train" para o gra
 X_train = pd.DataFrame(X_train,columns=X_col) #Transporma o "X_train" novamente em Dataframe e define o título das colunas
 #FUNÇÕES QUE PLOTAM OS GRAFICOS DE ANALISEs====================================================================================================
 #PERGUNTA 1 ---------------------------------------------------------------------------------------------------------------------------------
+def grafico1_p1():
+  fig = px.box(prod_p1['product_description_lenght'], height = 500 , width=800)
+  st.plotly_chart(fig)
 #PERGUNTA 2 ---------------------------------------------------------------------------------------------------------------------------------
 #PERGUNTA 3 ---------------------------------------------------------------------------------------------------------------------------------
 #MINERAÇÃO DE DADOS --------------------------------------------------------------------------------------------------------------------------
@@ -191,6 +194,13 @@ def load_page(data):
     AgGrid(df)  #cria dataframe interativo(filtros etc.)
     return df
 #ANALISE EXPLORATÓRIA-------------------------------------------------------------------------------------------------------------------
+#CASO----------------------------------------------------------------------------------------
+if select_page == 'Análise exploratória de dados': #Pagina de Analise exploratória
+  st.title('Análise exploratória de dados')
+  #Pergunta 1 -------------------------------------------------------------------------------------
+  st.subheader('Pergunta 1')
+  st.subheader('Caracteres na descrição dos produtos')
+  grafico1_p1()
 #DATA MINING ---------------------------------------------------------------------------------------------------------------------------
 
 
