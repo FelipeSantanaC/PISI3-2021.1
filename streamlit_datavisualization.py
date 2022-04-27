@@ -138,7 +138,10 @@ p3_ds = p3_ds[p3_ds['payment_sequential']==1]
 p3_ds = p3_ds.drop(['payment_sequential'],axis=1)
 #Dividindo o dataset em treinos e testes 
 #Colunas de variaveis 
-X = p3_ds[['payment_installments',	'payment_value',	'order_status'	,'quantity_of_items',	'price',	'freight_value'	,'payment_type_boleto',	'payment_type_credit_card',	'payment_type_debit_card',	'payment_type_voucher',	'order_approval_time',	'order_picking_time',	'order_delivery_time',	'delivered_on_time',	'posted_on_deadline',	'review_response_time']]
+X = p3_ds[['payment_installments','payment_value','order_status','quantity_of_items',	
+            'price','freight_value','payment_type_boleto','payment_type_credit_card','payment_type_debit_card',
+            'payment_type_voucher','order_approval_time','order_picking_time','order_delivery_time',
+            'delivered_on_time','posted_on_deadline','review_response_time']]
 #Colunas com classes
 y = p3_ds['review_score'] 
 #Configurando conjuntos de teste e treinamento
@@ -163,7 +166,10 @@ upsampled = pd.concat([upsampled1, upsampled2, upsampled3, upsampled4, score5])
 #Entre esse e o original o "y_train" possui uma diferença de 200 instancias
 #Separando novamente as classes e varaveis
 y_train = upsampled['review_score']
-X_train = upsampled[['payment_installments',	'payment_value',	'order_status'	,'quantity_of_items',	'price',	'freight_value'	,'payment_type_boleto',	'payment_type_credit_card',	'payment_type_debit_card',	'payment_type_voucher',	'order_approval_time',	'order_picking_time',	'order_delivery_time',	'delivered_on_time',	'posted_on_deadline',	'review_response_time']]
+X_train = upsampled[['payment_installments','payment_value','order_status','quantity_of_items',
+                    'price','freight_value','payment_type_boleto','payment_type_credit_card','payment_type_debit_card',
+                    'payment_type_voucher',	'order_approval_time','order_picking_time','order_delivery_time',
+                    'delivered_on_time','posted_on_deadline','review_response_time']]
 X_col = X_train.columns
 scaler = StandardScaler() #Instancia a função responsavel
 X_train = scaler.fit_transform(X_train) #Transformação do "X_train" para o grafico
@@ -175,12 +181,26 @@ def grafico1_p1():
   st.plotly_chart(fig)
 #PERGUNTA 2 ---------------------------------------------------------------------------------------------------------------------------------
 #PERGUNTA 3 ---------------------------------------------------------------------------------------------------------------------------------
+def grafico3_p3(): 
+  corr = X_train.corr()
+  fig = px.imshow(corr,text_auto=True, labels=dict(x='variables',y="Variables", aspect="auto"),
+                  x=X_train.columns,
+                  y=X_train.columns)
+  fig.update_xaxes(
+      showticklabels = False
+  )
+  st.plotly_chart(fig)
 #MINERAÇÃO DE DADOS --------------------------------------------------------------------------------------------------------------------------
 def grafico_elbow():
   elbow_df = pd.DataFrame({'Clusters': K, 'within-clusters sum-of-squares': distortions})
   fig = (px.line(elbow_df, x='Clusters', y='within-clusters sum-of-squares', template='seaborn')).update_traces(mode='lines+markers')
   st.plotly_chart(fig)
-
+def grafico_knn(): 
+  fig = px.bar(x=X_train.columns,y=importance)
+  fig.update_xaxes(
+   tickangle=45
+  )
+  st.plotly_chart(fig)
 # STREAMLIT VISUALIZATION=====================================================================================================================
 st.title("Cosmus - Visualização de Dados")
 #cria barra lateral
@@ -201,8 +221,24 @@ if select_page == 'Análise exploratória de dados': #Pagina de Analise explorat
   st.subheader('Pergunta 1')
   st.subheader('Caracteres na descrição dos produtos')
   grafico1_p1()
+  #Pergunta 3 -------------------------------------------------------------------------------------
+  st.subheader('Matriz de correlação')
+  grafico3_p3()
 #DATA MINING ---------------------------------------------------------------------------------------------------------------------------
-
+elif select_page == 'Mineração de dados':
+  st.title('Mineração de dados')
+  st.subheader('K-Means')
+  #KNN-----------------------------------------------------------------------------------------------
+  st.subheader('K-NN')
+  st.subheader('Importância dos Atributos')
+  #instanciando classificador
+  KNNclf = KNeighborsClassifier() 
+  #treinando o modelo 
+  KNNclf.fit(X_train, y_train)  
+  #permutando os valores das variaveis 
+  results = permutation_importance(KNNclf, X_train, y_train, scoring='accuracy',random_state=45)
+  importance = results.importances_mean
+  grafico_knn()
 
 #os if statements abaixo referem-se as opções do selectbox
 if select_page == 'Order Payments':
