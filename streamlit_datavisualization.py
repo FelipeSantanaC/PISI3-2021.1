@@ -180,6 +180,12 @@ def grafico1_p1():
   fig = px.box(prod_p1['product_description_lenght'], height = 500 , width=800)
   st.plotly_chart(fig)
 #PERGUNTA 2 ---------------------------------------------------------------------------------------------------------------------------------
+def grafico1_p2():
+  fig = px.histogram(payment_ds, x="payment_value", nbins=100)
+  st.plotly_chart(fig)
+def grafico3_p2():
+  fig = px.box(pd.melt(p2_ds),x='variable',y='value',points='outliers')
+  st.plotly_chart(fig)
 #PERGUNTA 3 ---------------------------------------------------------------------------------------------------------------------------------
 def grafico3_p3(): 
   corr = X_train.corr()
@@ -194,6 +200,9 @@ def grafico3_p3():
 def grafico_elbow():
   elbow_df = pd.DataFrame({'Clusters': K, 'within-clusters sum-of-squares': distortions})
   fig = (px.line(elbow_df, x='Clusters', y='within-clusters sum-of-squares', template='seaborn')).update_traces(mode='lines+markers')
+  st.plotly_chart(fig)
+def grafico_matriz_dispersao():
+  fig = px.scatter_matrix(p2_ds, dimensions=['payment_value',	'recency',	'frequency'], color="k-means")
   st.plotly_chart(fig)
 def grafico_knn(): 
   fig = px.bar(x=X_train.columns,y=importance)
