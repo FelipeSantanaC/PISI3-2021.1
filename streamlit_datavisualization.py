@@ -179,9 +179,19 @@ X_train = pd.DataFrame(X_train,columns=X_col) #Transporma o "X_train" novamente 
 def grafico1_p1():
   fig = px.box(prod_p1['product_description_lenght'], height = 500 , width=800)
   st.plotly_chart(fig)
+def grafico2_p1():
+  fig = px.scatter(prod_p1, x='product_description_lenght', y='sold_count',size='product_photos_qty', color='product_category_name')
+  st.plotly_chart(fig)
 #PERGUNTA 2 ---------------------------------------------------------------------------------------------------------------------------------
 def grafico1_p2():
   fig = px.histogram(payment_ds, x="payment_value", nbins=100)
+  st.plotly_chart(fig)
+def grafico2_p2():
+  corr = p2_ds.corr()
+  fig = px.imshow(corr,text_auto=True, labels=dict(x="Variables", y="Variables"),
+                  x=['frequency','payment_value','recency'],
+                  y=['frequency','payment_value','recency']
+                )
   st.plotly_chart(fig)
 def grafico3_p2():
   fig = px.box(pd.melt(p2_ds),x='variable',y='value',points='outliers')
@@ -239,6 +249,9 @@ if select_page == 'Análise exploratória de dados': #Pagina de Analise explorat
   st.subheader('Pergunta 1')
   st.subheader('Caracteres na descrição dos produtos')
   grafico1_p1()
+  st.subheader('Relação da descrição do produto com a quantidade de vendas')
+  prod_p1 = prod_p1.loc[:5000] #Selecionando os 5000 primeiros produtos com maiores caracteres.
+  grafico2_p1()
   #Pergunta 2 -------------------------------------------------------------------------------------
   st.subheader('Pergunta 2')
   st.subheader('Frequência de aparições de valores de a cada 100 reais')
@@ -268,6 +281,11 @@ elif select_page == 'Mineração de dados':
       kmeanModel = KMeans(n_clusters=k)
       kmeanModel.fit(p2_ds)
       distortions.append(kmeanModel.inertia_)
+  st.subheader('Grafico do Elbow Method')
+  #Costrução do gráfico que mostra o resultado do elbow method. 
+  grafico_elbow()
+  kmeanModel = KMeans(n_clusters=4) #Informando ao K-means a quantidade ideal de clusters.
+  st.subheader('Matriz de Dispersão')
   #Criando nova coluna para o uso do K-means
   newcolumn = pd.DataFrame(kmeanModel.labels_) #Cria uma coluna para gerar rotulos de cores para o grafico
   p2_ds['k-means']=newcolumn #Adiciona a nova coluna ao "pd"
