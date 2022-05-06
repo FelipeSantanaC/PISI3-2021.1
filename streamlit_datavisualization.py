@@ -240,6 +240,11 @@ if select_page == 'Análise exploratória de dados': #Pagina de Analise explorat
   grafico3_p2()
   customer_ds.value_counts('frequency')
   #Pergunta 3 -------------------------------------------------------------------------------------
+  st.subheader('Pergunta 3')
+  st.subheader('Review Score')
+  grafico1_p3()
+  st.subheader('Outliers') 
+  grafico2_p3()
   st.subheader('Matriz de correlação')
   grafico3_p3()
 #DATA MINING ---------------------------------------------------------------------------------------------------------------------------
