@@ -230,6 +230,15 @@ if select_page == 'Análise exploratória de dados': #Pagina de Analise explorat
   st.subheader('Pergunta 1')
   st.subheader('Caracteres na descrição dos produtos')
   grafico1_p1()
+  #Pergunta 2 -------------------------------------------------------------------------------------
+  st.subheader('Pergunta 2')
+  st.subheader('Frequência de aparições de valores de a cada 100 reais')
+  grafico1_p2()
+  st.subheader('Correlação de variaveis') #DANILO
+  st.subheader('Verificar outliers')
+  grafico2_p2()
+  grafico3_p2()#FELIPE
+  customer_ds.value_counts('frequency')
   #Pergunta 3 -------------------------------------------------------------------------------------
   st.subheader('Matriz de correlação')
   grafico3_p3()
@@ -237,6 +246,19 @@ if select_page == 'Análise exploratória de dados': #Pagina de Analise explorat
 elif select_page == 'Mineração de dados':
   st.title('Mineração de dados')
   st.subheader('K-Means')
+  #KMEANS ------------------------------------------------------------------------------------------------------------------------------
+  #Calculando a soma dos quadrados intra-clusters 
+  distortions = [] # Representa o 'within-clusters sum-of-squares'
+  K = range(1,10) #Representa a quantidade de clusters
+  for k in K:
+      kmeanModel = KMeans(n_clusters=k)
+      kmeanModel.fit(p2_ds)
+      distortions.append(kmeanModel.inertia_)
+  #Criando nova coluna para o uso do K-means
+  newcolumn = pd.DataFrame(kmeanModel.labels_) #Cria uma coluna para gerar rotulos de cores para o grafico
+  p2_ds['k-means']=newcolumn #Adiciona a nova coluna ao "pd"
+  #Construção do grafico da matriz de dispersão
+  grafico_matriz_dispersao()
   #KNN-----------------------------------------------------------------------------------------------
   st.subheader('K-NN')
   st.subheader('Importância dos Atributos')
