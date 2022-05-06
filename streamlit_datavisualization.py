@@ -234,10 +234,10 @@ if select_page == 'Análise exploratória de dados': #Pagina de Analise explorat
   st.subheader('Pergunta 2')
   st.subheader('Frequência de aparições de valores de a cada 100 reais')
   grafico1_p2()
-  st.subheader('Correlação de variaveis') #DANILO
+  st.subheader('Correlação de variaveis')
   st.subheader('Verificar outliers')
   grafico2_p2()
-  grafico3_p2()#FELIPE
+  grafico3_p2()
   customer_ds.value_counts('frequency')
   #Pergunta 3 -------------------------------------------------------------------------------------
   st.subheader('Matriz de correlação')
