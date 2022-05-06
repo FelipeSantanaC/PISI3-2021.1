@@ -187,6 +187,15 @@ def grafico3_p2():
   fig = px.box(pd.melt(p2_ds),x='variable',y='value',points='outliers')
   st.plotly_chart(fig)
 #PERGUNTA 3 ---------------------------------------------------------------------------------------------------------------------------------
+def grafico1_p3():
+  fig = px.histogram(review_ds, x="review_score", color='review_score')
+  st.plotly_chart(fig)
+def grafico2_p3():
+  fig = px.box(pd.melt(X_train),x='variable',y='value',points='outliers')
+  fig.update_xaxes(
+      tickangle =45
+  )
+  st.plotly_chart(fig)
 def grafico3_p3(): 
   corr = X_train.corr()
   fig = px.imshow(corr,text_auto=True, labels=dict(x='variables',y="Variables", aspect="auto"),
