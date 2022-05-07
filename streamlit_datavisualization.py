@@ -365,4 +365,38 @@ elif select_page == 'Mineração de dados':
     fig.update_yaxes(scaleanchor="x", scaleratio=1)
     fig.update_xaxes(constrain='domain')
     st.plotly_chart(fig)
-    
+    #========================================================================================================================================================
+    #rodando naive bayes!!=====================================================GAUSSIAN_NB===================================================================
+    st.subheader("Naive Bayes")
+    NBclf = GaussianNB()
+    parametros_NB = [{'classificador__var_smoothing': np.logspace(0,-9, num=100)}]
+    pipe = Pipeline(steps=[('padronizador', padronizador),('classificador', NBclf)])
+    melhor_modelo_NB = RandomizedSearchCV(pipe, param_distributions=parametros_NB, cv=10)
+    melhor_modelo_NB.fit(X_train, y_train)
+    #Avaliando modelo naive bayes
+    y_pred_NB = melhor_modelo_NB.predict(X_test)
+    #matriz de confusÃ£o decision tree
+    plot_confusion_matrix(melhor_modelo_NB, X_test, y_test, display_labels=labels)
+    st.pyplot()
+    #metricas
+    acuracia = accuracy_score(y_test, y_pred_NB)
+    precisao = precision_score(y_test, y_pred_NB,average='macro')
+    cobertura = recall_score(y_test, y_pred_NB,average='macro')
+    F1_Score = f1_score(y_test, y_pred_NB,average='macro')
+    print('GaussianNB: Acuracia:%.3f , Precisao: %.3f , Recall: %.3f , F1Score: %.3f'%(acuracia, precisao, cobertura, F1_Score))
+    # curva roc naive bayes
+    y_prob = melhor_modelo_NB.predict_proba(X_test)[:, 1] # probabilidades para a 2a classe
+    curva_precisao, curva_cobertura, thresholds = roc_curve(y_test, y_prob,pos_label=5 )
+    fig = px.area(
+        x=curva_precisao, y=curva_cobertura,
+        title=f'ROC Curve Naive Bayes(AUC={auc(curva_precisao, curva_cobertura):.4f})',
+        labels=dict(x='Taxa de falsos positivos', y='Taxa de verdadeiros positivos'),
+        width=700, height=500
+    )
+    fig.add_shape(
+        type='line', line=dict(dash='dash'),
+        x0=0, x1=1, y0=0, y1=1
+    )
+    fig.update_yaxes(scaleanchor="x", scaleratio=1)
+    fig.update_xaxes(constrain='domain')
+    st.plotly_chart(fig)
