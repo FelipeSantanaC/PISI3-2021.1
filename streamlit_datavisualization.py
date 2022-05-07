@@ -400,3 +400,32 @@ elif select_page == 'Mineração de dados':
     fig.update_yaxes(scaleanchor="x", scaleratio=1)
     fig.update_xaxes(constrain='domain')
     st.plotly_chart(fig)
+    #=================================================================================================================================================
+    #Importância de variáveis com PCA
+    st.title("Importancia de atributos")
+    X_train_scaled = padronizador.fit_transform(X_train)
+    pca = PCA().fit(X_train_scaled)
+    fig = px.line(pca.explained_variance_ratio_.cumsum(), 
+                  title="Variância explicada por número de componentes principais",
+                  labels=dict(index="Número de componentes principais",value="Variância"))
+    st.plotly_chart(fig)
+    loadings = pd.DataFrame(
+        data=pca.components_.T * np.sqrt(pca.explained_variance_), 
+        columns=[f'PC{i}' for i in range(1, len(X_train.columns) + 1)],
+        index=X_train.columns
+    )
+    loadings = pd.DataFrame(
+        data=pca.components_.T * np.sqrt(pca.explained_variance_), 
+        columns=[f'PC{i}' for i in range(1, len(X_train.columns) + 1)],
+        index=X_train.columns
+    )
+    pc1_loadings = loadings.sort_values(by='PC1', ascending=False)[['PC1']]
+    pc1_loadings = pc1_loadings.reset_index()
+    pc1_loadings.columns = ['Attribute', 'CorrelationWithPC1']
+    
+    fig = px.bar(x=pc1_loadings['Attribute'], 
+                y=pc1_loadings['CorrelationWithPC1'], 
+                title='Importância de variáveis',
+                labels=dict(x="Variáveis",y="Correlação com componente principal"))
+    st.plotly_chart(fig)
+  model_selection()
