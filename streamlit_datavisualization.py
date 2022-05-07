@@ -3,18 +3,28 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import streamlit as st
-from st_aggrid import AgGrid 
 import plotly.express as px
 import datetime as dt
 #Bibliotecas de classes de machine learning 
 from sklearn.cluster import KMeans #Importa o Kmenas 
 from sklearn.model_selection import train_test_split  #Divide as instancias entre treino e teste
 from sklearn.preprocessing import OneHotEncoder, LabelEncoder # Transforma variaveis categoricas em numericas
-from sklearn.datasets import make_classification  #ANYMORE
 from sklearn.neighbors import KNeighborsClassifier # Importa o algoritmo de ML classificador
-from sklearn.inspection import permutation_importance # Importa o algoritmo de permutação de importancia 
 from sklearn.preprocessing import StandardScaler #Importa o algitmo "padronizador"
 from sklearn.utils import resample #Reamostragem
+#ML
+from sklearn.model_selection import RandomizedSearchCV
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.naive_bayes import GaussianNB
+from sklearn.metrics import accuracy_score, precision_recall_curve, auc, precision_score, recall_score, plot_precision_recall_curve, f1_score, roc_curve
+from sklearn.pipeline import Pipeline
+from sklearn.feature_selection import SelectFromModel
+from scipy.stats import randint, uniform, expon
+from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay, plot_confusion_matrix
+import matplotlib.pyplot as plt
+from sklearn import metrics
+from sklearn.decomposition import PCA
+st.set_option('deprecation.showPyplotGlobalUse', False)
 #Variaveis correspondetes aos devidos endereços dos dataset selecionados======================================================================
 #O conjunto de dados foi cópiado para o GitHub de um dos integrantes da equipe Cosmus, responsavel pelo desenvolvimento do artigo
 products_ds = pd.read_csv('https://raw.githubusercontent.com/FelipeSantanaC/PISI3-2021.1/main/data/olist_products_dataset.csv') 
@@ -82,7 +92,7 @@ scaler = StandardScaler() #Instancia a função responsavel
 p2_ds = scaler.fit_transform(p2_ds) #Usa a função e padroniza
 #Transformação do "p2_ds" para o grafico
 p2_ds = pd.DataFrame(p2_ds) #Transporma o "p2_ds" novamente em Dataframe
-p2_ds = pd.DataFrame.rename(p2_ds, columns={0:'frequency', 1:'payment_value',	2:'recency'}) #retorna o nome das colunas
+#p2_ds = pd.DataFrame.rename(p2_ds, columns={0:'frequency', 1:'payment_value',	2:'recency'}) #retorna o nome das colunas
 #PERGUNTA 3 --------------------------------------------------------------------------------------------------------------------------------
 #Copiando o dataset "orders_ds" e apagando instancias NaN
 p3_ds = orders_ds.copy() #Copia o dataset "orders_ds"
@@ -137,6 +147,8 @@ p3_ds = p3_ds.drop(['review_creation_date',
 p3_ds = p3_ds[p3_ds['payment_sequential']==1]
 p3_ds = p3_ds.drop(['payment_sequential'],axis=1)
 #Dividindo o dataset em treinos e testes 
+values=[1,5] #adicionar aqui pega as classes de valor 1,5
+p3_ds = p3_ds[p3_ds.review_score.isin(values)] # seleciona especificamente os valores anteriores 
 #Colunas de variaveis 
 X = p3_ds[['payment_installments','payment_value','order_status','quantity_of_items',	
             'price','freight_value','payment_type_boleto','payment_type_credit_card','payment_type_debit_card',
@@ -150,19 +162,14 @@ X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.99,stratif
 X = pd.concat([X_train, y_train], axis=1)
 #Separando as classes minoritárias das majoritárias
 score5 = X[X['review_score']==5]
-score4 = X[X['review_score']==4]
-score3 = X[X['review_score']==3]
-score2 = X[X['review_score']==2]
 score1 = X[X['review_score']==1]
 #Reamostrando as classes com menor instâncias até o valor da classe predominante
 upsampled1 = resample(score1,replace=True, #Reposição da amostra
                       n_samples=len(score5), #Número de correspondência na classe majoritária
                       random_state=20) #Número de resultados reproduzíveis
-upsampled2= resample(score2,replace=True, n_samples=len(score5), random_state=20)
-upsampled3 = resample(score3,replace=True, n_samples=len(score5), random_state=20)
-upsampled4 = resample(score4,replace=True, n_samples=len(score5), random_state=20)
+
 #Junção de todas as classes
-upsampled = pd.concat([upsampled1, upsampled2, upsampled3, upsampled4, score5])
+upsampled = pd.concat([upsampled1, score5])
 #Entre esse e o original o "y_train" possui uma diferença de 200 instancias
 #Separando novamente as classes e varaveis
 y_train = upsampled['review_score']
@@ -171,9 +178,7 @@ X_train = upsampled[['payment_installments','payment_value','order_status','quan
                     'payment_type_voucher',	'order_approval_time','order_picking_time','order_delivery_time',
                     'delivered_on_time','posted_on_deadline','review_response_time']]
 X_col = X_train.columns
-scaler = StandardScaler() #Instancia a função responsavel
-X_train = scaler.fit_transform(X_train) #Transformação do "X_train" para o grafico
-X_train = pd.DataFrame(X_train,columns=X_col) #Transporma o "X_train" novamente em Dataframe e define o título das colunas
+padronizador = StandardScaler() #Instancia a função responsavel
 #FUNÇÕES QUE PLOTAM OS GRAFICOS DE ANALISEs====================================================================================================
 #PERGUNTA 1 ---------------------------------------------------------------------------------------------------------------------------------
 def grafico1_p1():
@@ -223,24 +228,12 @@ def grafico_elbow():
 def grafico_matriz_dispersao():
   fig = px.scatter_matrix(p2_ds, dimensions=['payment_value',	'recency',	'frequency'], color="k-means")
   st.plotly_chart(fig)
-def grafico_knn(): 
-  fig = px.bar(x=X_train.columns,y=importance)
-  fig.update_xaxes(
-   tickangle=45
-  )
-  st.plotly_chart(fig)
 # STREAMLIT VISUALIZATION=====================================================================================================================
 st.title("Cosmus - Visualização de Dados")
 #cria barra lateral
 st.sidebar.title("Menu")
 #cria uma selectbox para navegar entre as páginas de análises
 select_page = st.sidebar.selectbox("Selecionar sessão",['Análise exploratória de dados','Mineração de dados',])
-#função que carrega o template de cada página de análise, recebe a lista de datasets e o indice correspondente
-def load_page(data):
-    st.subheader(select_page) #subtítulo
-    df = pd.read_csv(data) #leitura do dataset
-    AgGrid(df)  #cria dataframe interativo(filtros etc.)
-    return df
 #ANALISE EXPLORATÓRIA-------------------------------------------------------------------------------------------------------------------
 #CASO----------------------------------------------------------------------------------------
 if select_page == 'Análise exploratória de dados': #Pagina de Analise exploratória
@@ -284,64 +277,92 @@ elif select_page == 'Mineração de dados':
   st.subheader('Grafico do Elbow Method')
   #Costrução do gráfico que mostra o resultado do elbow method. 
   grafico_elbow()
-  kmeanModel = KMeans(n_clusters=4) #Informando ao K-means a quantidade ideal de clusters.
+   #Informando ao K-means a quantidade ideal de clusters.
   st.subheader('Matriz de Dispersão')
-  #Criando nova coluna para o uso do K-means
-  newcolumn = pd.DataFrame(kmeanModel.labels_) #Cria uma coluna para gerar rotulos de cores para o grafico
-  p2_ds['k-means']=newcolumn #Adiciona a nova coluna ao "pd"
-  #Construção do grafico da matriz de dispersão
+  kmeanModel = KMeans(n_clusters=4)
+  kmeanModel.fit(p2_ds)
+  newcolumn = pd.DataFrame(kmeanModel.labels_)
+  p2_ds = pd.DataFrame(p2_ds)
+  p2_ds = pd.DataFrame.rename(p2_ds, columns={0:'payment_value',	1:'recency',	2:'frequency'})
+  p2_ds['k-means']=newcolumn
   grafico_matriz_dispersao()
-  #KNN-----------------------------------------------------------------------------------------------
-  st.subheader('K-NN')
-  st.subheader('Importância dos Atributos')
-  #instanciando classificador
-  KNNclf = KNeighborsClassifier() 
-  #treinando o modelo 
-  KNNclf.fit(X_train, y_train)  
-  #permutando os valores das variaveis 
-  results = permutation_importance(KNNclf, X_train, y_train, scoring='accuracy',random_state=45)
-  importance = results.importances_mean
-  grafico_knn()
-
-#os if statements abaixo referem-se as opções do selectbox
-if select_page == 'Order Payments':
-    df = load_page(order_payment) # chama funçao de template
-    pt_count = df['payment_type'].value_counts() #retorna frequencia de valores
-    fig = px.bar(pt_count) #plotagem do gráfico
-    st.plotly_chart(fig, use_container_width=True)
-#repete a mesma estrutura da condição anterior
-elif select_page =='Sellers list':
-    df = load_page(sellers)
-    pt_count = df['seller_state'].value_counts()
-    fig = px.bar(pt_count)
-    st.plotly_chart(fig)
-# cria mais um selectbox para selecionar uma categoria de produto, e plota a distribuição de pesos(g) dos produtos num scatterplot
-elif select_page =='Products list':
-    df = load_page(product)
-    category_filter = st.selectbox('Select product category',['cds_dvs_musicais','casa_conforto_2','moveis_quarto','fashion_roupa_infanto_juvenil', 'livros_importados', 'alimentos_bebidas', 'construcao_ferramentas_jardim', 'artigos_de_festa', 'telefonia_fixa', 'fashion_underwear_e_moda_praia', 'climatizacao', 'eletroportateis', 'casa_construcao', 'telefonia', 'moveis_escritorio', 'informatica_acessorios', 'eletrodomesticos', 'utilidades_domesticas', 'perfumaria' ])
-    category_selected = df[df['product_category_name']==category_filter]
-    fig = px.scatter(category_selected, y="product_category_name", x="product_weight_g")
-    st.plotly_chart(fig, use_container_width=True)
-#mostra a frequencia de cada categoria de produto
-    st.subheader('Products by category')
-    category_count = df['product_category_name'].value_counts()
-    fig1 = px.bar(category_count, width=800, height=500)
-    st.plotly_chart(fig1)
-    description = df.describe() #descreve resumidamente os dados
-    st.dataframe(description)
-#mostra frequência de avaliações (score 0 -5)
-elif select_page =='Order reviews':
-    df = load_page(order_review)
-    score_count = df['review_score'].value_counts()
-    fig2 = px.bar(score_count, width=800, height=500)
-    st.plotly_chart(fig2)
-#mostra os preços dos produtos e seus respectivos fretes
-elif select_page =='Order item':
-    df = load_page(order_item)
-    fig = px.scatter(df, x =df['price'], y = df['freight_value'],
-                 width=800, height=400)
-    fig.update_layout(
-    margin=dict(l=20, r=20, t=20, b=20),
-    paper_bgcolor="LightSteelBlue",
+  #AQUI COMEÇA O APRENDIZADO BOY
+  def model_selection():
+  #Rodando modelo KNN==========================================KNN===============================================================
+    st.title("Avaliação de Modelos")
+    st.subheader("KNN")
+    KNNclf = KNeighborsClassifier()      
+    hiperparametros_KNN =[{'classificador__n_neighbors': randint (1, 50)}]
+    pipe = Pipeline(steps=[('padronizador', padronizador),('classificador', KNNclf)])
+    melhor_modelo_KNN = RandomizedSearchCV(pipe, param_distributions=hiperparametros_KNN, cv=10, n_jobs=-1)
+    melhor_modelo_KNN.fit(X_train, y_train)
+    #Avaliando modelo KNN
+    y_pred_KNN = melhor_modelo_KNN.predict(X_test)
+    #Matriz de confusão
+    labels = ['1','5']
+    plot_confusion_matrix(melhor_modelo_KNN, X_test, y_test, display_labels=labels)
+    st.pyplot()
+    #Métricas
+    acuracia = accuracy_score(y_test, y_pred_KNN)
+    precisao = precision_score(y_test, y_pred_KNN,average='macro')
+    cobertura = recall_score(y_test, y_pred_KNN,average='macro')
+    F1_Score = f1_score(y_test, y_pred_KNN,average='macro')
+    st.text('KNN: Acuracia:%.3f , Precisao: %.3f , Recall: %.3f , F1Score: %.3f'%(acuracia, precisao, cobertura, F1_Score))
+    #gráfico curva roc KNN
+  # Coletando predições
+    y_prob = melhor_modelo_KNN.predict_proba(X_test)[:, 1] # probabilidades para a 2a classe
+    curva_precisao, curva_cobertura, thresholds = roc_curve(y_test, y_prob,pos_label=5 )
+    fig = px.area(
+      x=curva_precisao, y=curva_cobertura,
+      title=f'ROC Curve KNN (AUC={auc(curva_precisao, curva_cobertura):.4f})',
+      labels=dict(x='Taxa de falsos positivos', y='Taxa de verdadeiros positivos'),
+      width=700, height=500
     )
+    fig.add_shape(
+      type='line', line=dict(dash='dash'),
+      x0=0, x1=1, y0=0, y1=1
+    )
+
+    fig.update_yaxes(scaleanchor="x", scaleratio=1)
+    fig.update_xaxes(constrain='domain')
     st.plotly_chart(fig)
+    #==============================================================================================================================================
+    #Rodando modelo de decision tree=========================================DECISION TREE=========================================================
+    st.subheader("Decision Tree")
+    DTclf = DecisionTreeClassifier()
+    hiperparametros_DT = [{'classificador__min_samples_split':  uniform(loc=1e-6, scale=0.5), 
+                                  'classificador__min_samples_leaf':  uniform(loc=1e-6, scale=0.5),
+                                  'classificador__max_depth':  randint(1, 1000),
+                                  'classificador__criterion':  ['entropy', 'gini']}]
+    pipe = Pipeline(steps=[('padronizador', padronizador),('classificador', DTclf)])
+    melhor_modelo_DT = RandomizedSearchCV(pipe, param_distributions=hiperparametros_DT, cv=10)
+    melhor_modelo_DT.fit(X_train, y_train)
+    #Avaliando modelo decision tree
+    y_pred_DT = melhor_modelo_DT.predict(X_test)
+    #matriz de confusão decision tree
+    plot_confusion_matrix(melhor_modelo_DT, X_test, y_test, display_labels=labels)
+    st.pyplot()
+    #metricas
+    acuracia = accuracy_score(y_test, y_pred_DT)
+    precisao = precision_score(y_test, y_pred_DT,average='macro')
+    cobertura = recall_score(y_test, y_pred_DT,average='macro')
+    F1_Score = f1_score(y_test, y_pred_DT,average='macro')
+    print('Decision Tree: Acuracia:%.3f , Precisao: %.3f , Recall: %.3f , F1Score: %.3f'%(acuracia, precisao, cobertura, F1_Score))
+    #gráfico curva roc DECISION TREE
+    # Coletando predições
+    y_prob = melhor_modelo_DT.predict_proba(X_test)[:, 1] # probabilidades para a 2a classe
+    curva_precisao, curva_cobertura, thresholds = roc_curve(y_test, y_prob,pos_label=5 )
+    fig = px.area(
+        x=curva_precisao, y=curva_cobertura,
+        title=f'ROC Curve Decision Tree (AUC={auc(curva_precisao, curva_cobertura):.4f})',
+        labels=dict(x='Taxa de falsos positivos', y='Taxa de verdadeiros positivos'),
+        width=700, height=500
+    )
+    fig.add_shape(
+        type='line', line=dict(dash='dash'),
+        x0=0, x1=1, y0=0, y1=1
+    )
+    fig.update_yaxes(scaleanchor="x", scaleratio=1)
+    fig.update_xaxes(constrain='domain')
+    st.plotly_chart(fig)
+    
