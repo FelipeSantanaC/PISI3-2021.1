@@ -146,6 +146,9 @@ p3_ds = p3_ds.drop(['review_creation_date',
 #seleciona o sequencial de pagamento = 1 e exclui a respectiva coluna
 p3_ds = p3_ds[p3_ds['payment_sequential']==1]
 p3_ds = p3_ds.drop(['payment_sequential'],axis=1)
+#cria uma copia com todos as classes target
+p3_copy = p3_ds.copy()
+p3_copy = p3_copy.sort_values('review_score', ascending=True)
 #Dividindo o dataset em treinos e testes 
 values=[1,5] #adicionar aqui pega as classes de valor 1,5
 p3_ds = p3_ds[p3_ds.review_score.isin(values)] # seleciona especificamente os valores anteriores 
@@ -157,7 +160,7 @@ X = p3_ds[['payment_installments','payment_value','order_status','quantity_of_it
 #Colunas com classes
 y = p3_ds['review_score'] 
 #Configurando conjuntos de teste e treinamento
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.99,stratify=y, random_state=999) #Limita o dataset a 20%
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.30,stratify=y, random_state=999) #Limita o dataset a 20%
 #Concatenando os dados de treinamento novamente
 X = pd.concat([X_train, y_train], axis=1)
 #Separando as classes minoritárias das majoritárias
@@ -180,6 +183,7 @@ X_train = upsampled[['payment_installments','payment_value','order_status','quan
 X_col = X_train.columns
 padronizador = StandardScaler() #Instancia a função responsavel
 #FUNÇÕES QUE PLOTAM OS GRAFICOS DE ANALISEs====================================================================================================
+
 #PERGUNTA 1 ---------------------------------------------------------------------------------------------------------------------------------
 def grafico1_p1():
   fig = px.box(prod_p1['product_description_lenght'], height = 500 , width=800)
@@ -202,14 +206,12 @@ def grafico3_p2():
   fig = px.box(pd.melt(p2_ds),x='variable',y='value',points='outliers')
   st.plotly_chart(fig)
 #PERGUNTA 3 ---------------------------------------------------------------------------------------------------------------------------------
+def grafico2_p3():
+  st.write('Este gráfico mostra a dispersão de valores de pagamento e frete, os pontos de dados estão coloridos de acordo com uma escala de valores contínuos da variável delivered_on_time. Esse atributo foi obtido a partir da diferença entre a data de entrega estimada e a data que foi entregue, assim, valores negativos representam atrasos(horas), e os positivos, pedidos que foram entregues antes do prazo.')
+  fig = px.scatter(p3_copy, x='freight_value',y='payment_value', animation_frame='review_score',color='delivered_on_time')
+  st.plotly_chart(fig)
 def grafico1_p3():
   fig = px.histogram(review_ds, x="review_score", color='review_score')
-  st.plotly_chart(fig)
-def grafico2_p3():
-  fig = px.box(pd.melt(X_train),x='variable',y='value',points='outliers')
-  fig.update_xaxes(
-      tickangle =45
-  )
   st.plotly_chart(fig)
 def grafico3_p3(): 
   corr = X_train.corr()
@@ -239,27 +241,27 @@ select_page = st.sidebar.selectbox("Selecionar sessão",['Análise exploratória
 if select_page == 'Análise exploratória de dados': #Pagina de Analise exploratória
   st.title('Análise exploratória de dados')
   #Pergunta 1 -------------------------------------------------------------------------------------
-  st.subheader('Pergunta 1')
+  st.subheader('As quantidade de informações disponíveis na descrição dos produtos têm relevância na sua quantidade de vendas?')
   st.subheader('Caracteres na descrição dos produtos')
   grafico1_p1()
   st.subheader('Relação da descrição do produto com a quantidade de vendas')
   prod_p1 = prod_p1.loc[:5000] #Selecionando os 5000 primeiros produtos com maiores caracteres.
   grafico2_p1()
   #Pergunta 2 -------------------------------------------------------------------------------------
-  st.subheader('Pergunta 2')
-  st.subheader('Frequência de aparições de valores de a cada 100 reais')
+  st.subheader('Quantos grupos de clientes é possível identificar?')
+  st.subheader('Distribuição de valores de pagamento a cada R$100')
   grafico1_p2()
   st.subheader('Correlação de variaveis')
-  st.subheader('Verificar outliers')
   grafico2_p2()
+  st.subheader('Variação dos dados')
   grafico3_p2()
   customer_ds.value_counts('frequency')
   #Pergunta 3 -------------------------------------------------------------------------------------
-  st.subheader('Pergunta 3')
-  st.subheader('Review Score')
-  grafico1_p3()
-  st.subheader('Outliers') 
+  st.subheader('Quais atributos têm maior peso nas avaliações dos usuários?')
+  st.subheader('Dispersão de valores de pagamento e frete ')
   grafico2_p3()
+  st.subheader('Distribuição de Review Score')
+  grafico1_p3()
   st.subheader('Matriz de correlação')
   grafico3_p3()
 #DATA MINING ---------------------------------------------------------------------------------------------------------------------------
